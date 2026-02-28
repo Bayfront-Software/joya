@@ -7,25 +7,21 @@
   <title>除夜の鐘チャレンジ</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body data-level="0">
+
   <!-- スタート画面 -->
   <div id="screen-start" class="screen active">
     <div class="start-inner">
       <h1 class="game-title">除夜の鐘<br><span>チャレンジ</span></h1>
-      <p class="game-subtitle">108の煩悩を退散させよ</p>
+      <p class="game-subtitle">煩悩を退散させよ</p>
       <div class="rules">
         <h2>遊び方</h2>
         <ul>
-          <li>鐘が中央付近にあるときに叩くと高得点！</li>
-          <li>連続でいいタイミングを狙うとコンボボーナス</li>
-          <li>108回叩いて煩悩を全て退散させよう</li>
+          <li>鐘が中央付近にある瞬間に叩く！</li>
+          <li>連続成功するごとに退散する煩悩が<strong>倍々</strong>に増える</li>
+          <li>成功するほど成功ゾーンが狭くなる</li>
+          <li>1回でもミスしたら<strong>即終了</strong></li>
         </ul>
-        <div class="timing-legend">
-          <span class="legend-perfect">PERFECT ±3°</span>
-          <span class="legend-great">GREAT ±8°</span>
-          <span class="legend-good">GOOD ±15°</span>
-          <span class="legend-miss">MISS それ以外</span>
-        </div>
       </div>
       <button id="btn-start" class="btn-primary">ゲームスタート</button>
       <div id="start-highscore" class="highscore-display"></div>
@@ -36,42 +32,39 @@
   <div id="screen-game" class="screen">
     <header class="game-header">
       <div class="stat-block">
-        <span class="stat-label">スコア</span>
+        <span class="stat-label">退散した煩悩</span>
         <span id="score-display" class="stat-value">0</span>
       </div>
       <div class="stat-block">
-        <span class="stat-label">コンボ</span>
-        <span id="combo-display" class="stat-value">0</span>
+        <span class="stat-label">連続成功</span>
+        <span id="combo-display" class="stat-value combo-value">0</span>
       </div>
       <div class="stat-block">
-        <span class="stat-label">最高</span>
+        <span class="stat-label">最高記録</span>
         <span id="highscore-display" class="stat-value">0</span>
       </div>
     </header>
 
-    <div class="bonno-name" id="bonno-name">煩悩を退散させよ</div>
-    <div class="bonno-count">
-      残り煩悩: <span id="bonno-remaining">108</span> / 108
-    </div>
+    <div class="bonno-name" id="bonno-name">&#8203;</div>
 
     <div class="bell-area">
+      <div id="level-bg" class="level-bg"></div>
       <div id="bell-wrapper" class="bell-wrapper">
         <img src="img/joyanokane.png" alt="除夜の鐘" id="bell-img" class="bell-img">
       </div>
       <div id="judgment-text" class="judgment-text"></div>
+      <div id="particle-container" class="particle-container"></div>
     </div>
 
-    <div class="timing-bar-container">
-      <div class="timing-bar">
-        <div class="zone zone-miss left-miss">MISS</div>
-        <div class="zone zone-good left-good">GOOD</div>
-        <div class="zone zone-great left-great">GREAT</div>
-        <div class="zone zone-perfect">PERF</div>
-        <div class="zone zone-great right-great">GREAT</div>
-        <div class="zone zone-good right-good">GOOD</div>
-        <div class="zone zone-miss right-miss">MISS</div>
+    <div class="timing-section">
+      <div class="timing-req-label">
+        <span id="timing-req">成功ゾーン</span>
+        <span id="next-bonus" class="next-bonus"></span>
       </div>
-      <div id="timing-pointer" class="timing-pointer">▼</div>
+      <div class="timing-bar-container">
+        <div id="timing-bar" class="timing-bar"></div>
+        <div id="timing-pointer" class="timing-pointer">▼</div>
+      </div>
     </div>
 
     <button id="btn-hit" class="btn-hit" aria-label="鐘を叩く">BANG!</button>
@@ -79,37 +72,26 @@
 
   <!-- リザルト画面 -->
   <div id="screen-result" class="screen">
+    <div id="confetti-container" class="confetti-container"></div>
     <div class="result-inner">
-      <h2 class="result-title">煩悩退散！</h2>
-      <div id="result-rank" class="result-rank">S</div>
+      <h2 class="result-title" id="result-title">ゲームオーバー</h2>
+      <div id="result-rank" class="result-rank">D</div>
+      <div class="result-main-score">
+        <span class="result-score-label">退散した煩悩</span>
+        <span id="result-score" class="result-score-value">0</span>
+        <span class="result-score-unit">個</span>
+      </div>
       <div class="result-stats">
         <div class="result-stat">
-          <span class="result-stat-label">スコア</span>
-          <span id="result-score" class="result-stat-value">0</span>
+          <span class="result-stat-label">連続成功</span>
+          <span id="result-max-combo" class="result-stat-value">0</span><span class="result-stat-unit">回</span>
         </div>
         <div class="result-stat">
-          <span class="result-stat-label">最大コンボ</span>
-          <span id="result-max-combo" class="result-stat-value">0</span>
-        </div>
-        <div class="result-stat">
-          <span class="result-stat-label">PERFECT</span>
-          <span id="result-perfect" class="result-stat-value">0</span>
-        </div>
-        <div class="result-stat">
-          <span class="result-stat-label">GREAT</span>
-          <span id="result-great" class="result-stat-value">0</span>
-        </div>
-        <div class="result-stat">
-          <span class="result-stat-label">GOOD</span>
-          <span id="result-good" class="result-stat-value">0</span>
-        </div>
-        <div class="result-stat">
-          <span class="result-stat-label">MISS</span>
-          <span id="result-miss" class="result-stat-value">0</span>
+          <span class="result-stat-label">最後に退散した煩悩</span>
+          <span id="result-last-bonno" class="result-stat-value">—</span>
         </div>
       </div>
-      <div id="result-strongest-bonno" class="result-strongest"></div>
-      <div id="new-record" class="new-record hidden">🎊 NEW RECORD!</div>
+      <div id="new-record" class="new-record hidden">NEW RECORD!</div>
       <div id="result-highscore" class="result-highscore"></div>
       <div class="result-buttons">
         <button id="btn-share" class="btn-share">結果をシェア</button>
