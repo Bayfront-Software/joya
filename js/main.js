@@ -10,11 +10,8 @@ function getSuccessWindow(combo) {
   return Math.max(2, 20 - combo * 0.85);
 }
 
-// 周期: 連続するほど速くなる max(0.55, 2.0 - combo * 0.08)
-// combo0: 2.0s, combo10: 1.2s, combo18: 0.56s, combo19+: 0.55s
-function getPeriod(combo) {
-  return Math.max(0.55, 2.0 - combo * 0.08);
-}
+// 周期: 固定2秒（スコアの爆発感が楽しさのため、速度変化なし）
+const BELL_PERIOD = 2.0;
 
 // 視覚レベル (0〜4)
 function getLevel(combo) {
@@ -188,10 +185,10 @@ function animationLoop(timestamp) {
   if (state.lastTime === null) state.lastTime = timestamp;
   const dt = (timestamp - state.lastTime) / 1000;
   state.lastTime = timestamp;
-  state.elapsed += dt;
 
-  const period = getPeriod(state.combo);
-  const angle  = Math.sin(state.elapsed / period * Math.PI * 2) * MAX_ANGLE;
+  // 位相を毎フレーム積み上げることでコンボ変化時のワープを防ぐ
+  state.bellPhase += (dt / BELL_PERIOD) * Math.PI * 2;
+  const angle = Math.sin(state.bellPhase) * MAX_ANGLE;
   state.angle  = angle;
 
   // 鐘の回転
@@ -343,7 +340,7 @@ function startGame() {
   state = {
     phase: 'game',
     angle: 0,
-    elapsed: 0,
+    bellPhase: 0,
     lastTime: null,
     rafId: null,
     combo: 0,
