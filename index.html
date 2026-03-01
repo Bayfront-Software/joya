@@ -25,6 +25,7 @@
       </div>
       <button id="btn-start" class="btn-primary">ゲームスタート</button>
       <div id="start-highscore" class="highscore-display"></div>
+      <button id="btn-demo-ending" class="btn-demo">★ エンディングを見る（デモ）</button>
     </div>
   </div>
 
@@ -98,6 +99,45 @@
         <button id="btn-replay" class="btn-primary">もう一度</button>
       </div>
     </div>
+  </div>
+
+  <!-- エンディング画面 -->
+  <div id="screen-ending" class="screen">
+    <div id="stars-bg" class="stars-bg"></div>
+
+    <div class="crawl-scene">
+      <div class="crawl-plane">
+        <div id="crawl-text" class="crawl-text">
+          <p class="crawl-ep">EPISODE  C  V  I  I  I</p>
+          <h1 class="crawl-title">煩 悩 退 散</h1>
+          <p class="crawl-subtitle">THE  COMPLETE  PURIFICATION</p>
+          <p class="crawl-narration">
+            108の煩悩すべてを退散させ<br>
+            勇者はついに完全なる清廉を手にした。<br>
+            以下はその戦いの全記録である——
+          </p>
+          <div class="crawl-divider">✦ ✦ ✦</div>
+          <div id="crawl-bonno-list" class="crawl-bonno-list"></div>
+          <div class="crawl-divider">✦ ✦ ✦</div>
+          <p class="crawl-epilogue">
+            かくして煩悩たちは宇宙の彼方へと消え去り<br>
+            世界にふたたび平和が訪れた。
+          </p>
+          <div class="crawl-spacer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最後に浮き上がる Thank you -->
+    <div id="crawl-thanks-overlay" class="crawl-thanks-overlay">
+      <p class="crawl-thanks-text">Thank you for playing</p>
+      <div class="crawl-thanks-buttons">
+        <button id="btn-ending-replay" class="btn-primary">もう一度</button>
+        <button id="btn-ending-result" class="btn-share">結果を見る</button>
+      </div>
+    </div>
+
+    <button id="btn-skip-ending" class="btn-skip">SKIP</button>
   </div>
 
   <script src="js/main.js"></script>

@@ -88,14 +88,16 @@ let state = {
   combo: 0,
   bonnoTotal: 0,   // 退散した煩悩の総数（スコア）
   lastBonno: '',
+  bonnoHistory: [], // 退散した煩悩の履歴（順番）
   highScore: 0,
 };
 
 // ===== DOM =====
 const screens = {
-  start:  document.getElementById('screen-start'),
-  game:   document.getElementById('screen-game'),
-  result: document.getElementById('screen-result'),
+  start:   document.getElementById('screen-start'),
+  game:    document.getElementById('screen-game'),
+  result:  document.getElementById('screen-result'),
+  ending:  document.getElementById('screen-ending'),
 };
 const els = {
   scoreDisplay:     document.getElementById('score-display'),
@@ -114,6 +116,14 @@ const els = {
   btnHit:           document.getElementById('btn-hit'),
   btnReplay:        document.getElementById('btn-replay'),
   btnShare:         document.getElementById('btn-share'),
+  btnDemoEnding:    document.getElementById('btn-demo-ending'),
+  btnSkipEnding:    document.getElementById('btn-skip-ending'),
+  btnEndingReplay:  document.getElementById('btn-ending-replay'),
+  btnEndingResult:  document.getElementById('btn-ending-result'),
+  crawlText:        document.getElementById('crawl-text'),
+  crawlBonnoList:   document.getElementById('crawl-bonno-list'),
+  crawlThanks:      document.getElementById('crawl-thanks-overlay'),
+  starsBg:          document.getElementById('stars-bg'),
   startHighscore:   document.getElementById('start-highscore'),
   resultTitle:      document.getElementById('result-title'),
   resultRank:       document.getElementById('result-rank'),
@@ -224,7 +234,7 @@ function updateTimingBar(combo) {
 
 // ===== ヒット処理 =====
 function onHit() {
-  if (state.phase !== 'game') return;
+  if (state.phase !== 'game') return; // ending-pending も弾く
 
   const absAngle = Math.abs(state.angle);
   const window   = getSuccessWindow(state.combo);
@@ -242,9 +252,10 @@ function handleSuccess(absAngle) {
   const gain = calcBonnoGain(state.combo);
   state.bonnoTotal += gain;
 
-  // 煩悩名
+  // 煩悩名（履歴にも記録）
   const bonno = BONNO_LIST[Math.floor(Math.random() * BONNO_LIST.length)];
   state.lastBonno = bonno;
+  state.bonnoHistory.push(bonno);
   els.bonnoName.textContent = `${bonno}を退散！ +${gain.toLocaleString()}`;
 
   // 判定ラベル
@@ -267,11 +278,20 @@ function handleSuccess(absAngle) {
   els.bellImg.classList.add('hit');
   setTimeout(() => els.bellImg.classList.remove('hit'), 200);
 
+  playBellSound(true, absAngle);
+
+  // 108回連続達成 → 特別エンディング
+  if (state.combo >= 108) {
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+    state.phase = 'ending-pending'; // 追加入力を無効化
+    document.body.dataset.level = '4'; // 最高演出を少し見せる
+    setTimeout(() => startEnding(state.bonnoHistory, state.bonnoTotal, state.combo), 1500);
+    return;
+  }
+
   // レベルアップ
   applyLevel(state.combo);
   updateTimingBar(state.combo);
-
-  playBellSound(true, absAngle);
 }
 
 function handleMiss() {
@@ -346,6 +366,7 @@ function startGame() {
     combo: 0,
     bonnoTotal: 0,
     lastBonno: '',
+    bonnoHistory: [],
     highScore: loadHighScore(),
   };
 
@@ -362,6 +383,87 @@ function startGame() {
   updateTimingBar(0);
   showScreen('game');
   state.rafId = requestAnimationFrame(animationLoop);
+}
+
+// ===== 特別エンディング =====
+let _crawlThanksTimer = null;
+
+function startEnding(bonnoHistory, bonnoTotal, combo) {
+  // 前回のタイマーをキャンセル
+  if (_crawlThanksTimer) { clearTimeout(_crawlThanksTimer); _crawlThanksTimer = null; }
+
+  // 星を生成（重複生成防止）
+  if (els.starsBg.childElementCount === 0) createStars();
+
+  // 煩悩リストを組み立て
+  populateCrawl(bonnoHistory);
+
+  // ハイスコア保存
+  if (bonnoTotal > loadHighScore()) saveHighScore(bonnoTotal);
+
+  // Thank you を非表示にリセット
+  els.crawlThanks.classList.remove('visible');
+
+  // クロールアニメーションをリセット
+  els.crawlText.style.animation = 'none';
+  void els.crawlText.offsetHeight; // reflow
+
+  showScreen('ending');
+
+  // アニメーション開始（レイアウト確定後に高さを測定）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const contentH = els.crawlText.scrollHeight;
+      const viewH    = window.innerHeight;
+      const speed    = 52; // px/s
+      const duration = Math.round((contentH + viewH * 1.2) / speed);
+
+      els.crawlText.style.animation =
+        `crawl-up ${duration}s linear forwards`;
+
+      _crawlThanksTimer = setTimeout(() => {
+        els.crawlThanks.classList.add('visible');
+        _crawlThanksTimer = null;
+      }, (duration + 1) * 1000);
+    });
+  });
+}
+
+function createStars() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 180; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() > 0.85 ? 2 : 1;
+    s.style.cssText = [
+      `left:${(Math.random() * 100).toFixed(2)}%`,
+      `top:${(Math.random() * 100).toFixed(2)}%`,
+      `width:${size}px`,
+      `height:${size}px`,
+      `--op-from:${(0.2 + Math.random() * 0.4).toFixed(2)}`,
+      `--op-to:${(0.7 + Math.random() * 0.3).toFixed(2)}`,
+      `--twinkle:${(2 + Math.random() * 4).toFixed(1)}s`,
+    ].join(';');
+    frag.appendChild(s);
+  }
+  els.starsBg.appendChild(frag);
+}
+
+function populateCrawl(bonnoHistory) {
+  els.crawlBonnoList.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  bonnoHistory.forEach((name, i) => {
+    const span = document.createElement('span');
+    span.className = 'crawl-bonno-item';
+    span.innerHTML = `<span class="crawl-bonno-num">${i + 1}.</span>${name}`;
+    frag.appendChild(span);
+  });
+  els.crawlBonnoList.appendChild(frag);
+}
+
+function getDemoBonnoHistory() {
+  // デモ用に BONNO_LIST を繰り返して108個作る
+  return Array.from({ length: 108 }, (_, i) => BONNO_LIST[i % BONNO_LIST.length]);
 }
 
 // ===== ゲーム終了 =====
@@ -446,6 +548,26 @@ function initEvents() {
   els.btnStart.addEventListener('click', startGame);
   els.btnReplay.addEventListener('click', startGame);
   els.btnShare.addEventListener('click', share);
+
+  // デモエンディング
+  els.btnDemoEnding.addEventListener('click', () => {
+    const demoHistory = getDemoBonnoHistory();
+    state.bonnoHistory = demoHistory;
+    state.bonnoTotal   = Math.pow(2, 108) - 1;
+    state.combo        = 108;
+    state.lastBonno    = demoHistory[107];
+    startEnding(demoHistory, state.bonnoTotal, 108);
+  });
+
+  // スキップ
+  els.btnSkipEnding.addEventListener('click', () => {
+    els.crawlText.style.animationPlayState = 'paused';
+    els.crawlThanks.classList.add('visible');
+  });
+
+  // エンディング後のボタン
+  els.btnEndingReplay.addEventListener('click', startGame);
+  els.btnEndingResult.addEventListener('click', () => endGame());
 
   function handleHit(e) { e.preventDefault(); onHit(); }
 
