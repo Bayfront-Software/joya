@@ -524,6 +524,9 @@ function endGame() {
 
   spawnConfetti(rank);
   showScreen('result');
+
+  // ▼ AdSense 有効化後にコメントを外す
+  // try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
 }
 
 function buildShareText(score, combo, rank) {

@@ -982,6 +982,58 @@ body[data-level="4"] .combo-value {
   border-color: rgba(200,160,0,0.6);
 }
 
+/* ===== マネタイズ ===== */
+
+/* 支援エリア（リザルト画面下部） */
+.support-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(200,160,0,0.12);
+  width: 100%;
+}
+
+.support-label {
+  font-size: 0.66rem;
+  color: var(--color-text-dim);
+  opacity: 0.65;
+  letter-spacing: 0.05em;
+}
+
+/* Ko-fi 支援ボタン（リザルト・エンディング共通） */
+.btn-kofi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  color: rgba(200,160,0,0.55);
+  border: 1px solid rgba(200,160,0,0.28);
+  border-radius: 20px;
+  padding: 7px 20px;
+  font-size: 0.78rem;
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.btn-kofi:hover, .btn-kofi:active {
+  color: rgba(200,160,0,0.9);
+  border-color: rgba(200,160,0,0.55);
+  background: rgba(200,160,0,0.07);
+}
+
+/* 広告ユニット（AdSense） */
+.ad-unit {
+  width: 100%;
+  max-width: 480px;
+  min-height: 90px;
+  margin-top: 8px;
+}
+
 /* ===== ユーティリティ ===== */
 .hidden {
   display: none !important;
