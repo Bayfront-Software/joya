@@ -588,6 +588,8 @@ body[data-level="4"] .combo-value {
 .result-rank.rank-a  { color: var(--color-great); text-shadow: 0 0 30px rgba(76,244,255,0.7); }
 .result-rank.rank-s  { color: var(--color-perfect); text-shadow: 0 0 30px rgba(255,76,244,0.8); animation: rank-appear 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, rank-pulse 1.5s ease-in-out 0.5s infinite alternate; }
 .result-rank.rank-ss { animation: rank-appear 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, rank-rainbow 1s linear 0.5s infinite; }
+.result-rank.rank-ashura { font-size: clamp(3rem, 14vw, 5.5rem); animation: rank-appear 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, rank-ashura 1.2s ease-in-out 0.5s infinite alternate; }
+.result-rank.rank-buddha { font-size: clamp(3rem, 14vw, 5.5rem); animation: rank-appear 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards, rank-buddha 2s ease-in-out 0.5s infinite alternate; }
 
 @keyframes rank-pulse {
   from { text-shadow: 0 0 20px rgba(255,76,244,0.5); }
@@ -600,6 +602,16 @@ body[data-level="4"] .combo-value {
   50%  { color: #4cff88; text-shadow: 0 0 40px #4cff88; }
   75%  { color: #ffe066; text-shadow: 0 0 40px #ffe066; }
   100% { color: #ff4cf4; text-shadow: 0 0 40px #ff4cf4; }
+}
+
+@keyframes rank-ashura {
+  from { color: #ff6622; text-shadow: 0 0 20px rgba(255,100,0,0.6), 0 0 40px rgba(200,50,0,0.3); }
+  to   { color: #ffaa44; text-shadow: 0 0 50px rgba(255,150,0,1), 0 0 100px rgba(255,80,0,0.6), 0 0 30px rgba(255,200,100,0.3); }
+}
+
+@keyframes rank-buddha {
+  from { color: #ffd700; text-shadow: 0 0 30px rgba(255,215,0,0.6), 0 0 60px rgba(255,200,100,0.3); }
+  to   { color: #fff8a0; text-shadow: 0 0 60px rgba(255,215,0,1), 0 0 120px rgba(255,220,150,0.7), 0 0 200px rgba(255,200,0,0.3); }
 }
 
 /* 退散した煩悩（メインスコア） */
@@ -788,13 +800,7 @@ body[data-level="4"] .combo-value {
   font-family: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
   text-align: center;
   line-height: 1.9;
-  /* animationDuration は JS で上書き */
-  animation: crawl-up 9999s linear forwards paused;
-}
-
-@keyframes crawl-up {
-  from { transform: translateY(100vh); }
-  to   { transform: translateY(-8000px); }
+  /* transform は JS（Web Animations API）で制御 */
 }
 
 .crawl-ep {

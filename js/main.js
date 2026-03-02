@@ -24,12 +24,31 @@ function getLevel(combo) {
 
 // ランク（コンボ数で判定）
 function getRank(combo) {
+  if (combo >= 60) return '仏陀';
+  if (combo >= 30) return '阿修羅';
   if (combo >= 18) return 'SS';
   if (combo >= 13) return 'S';
   if (combo >= 10) return 'A';
   if (combo >= 7)  return 'B';
   if (combo >= 4)  return 'C';
   return 'D';
+}
+
+// ランク → CSSクラス名
+const RANK_CLASS = {
+  'D': 'd', 'C': 'c', 'B': 'b', 'A': 'a',
+  'S': 's', 'SS': 'ss', '阿修羅': 'ashura', '仏陀': 'buddha',
+};
+
+// スコア整形（万・億・兆…単位）
+function formatScore(n) {
+  if (n < 1e4)  return n.toLocaleString();
+  if (n < 1e8)  return (n / 1e4).toFixed(1).replace(/\.0$/, '') + '万';
+  if (n < 1e12) return (n / 1e8).toFixed(1).replace(/\.0$/, '') + '億';
+  if (n < 1e16) return (n / 1e12).toFixed(1).replace(/\.0$/, '') + '兆';
+  if (n < 1e20) return (n / 1e16).toFixed(1).replace(/\.0$/, '') + '京';
+  if (n < 1e24) return (n / 1e20).toFixed(1).replace(/\.0$/, '') + '垓';
+  return '無量大数';
 }
 
 // 判定ラベル（成功した場合の飾り文字）
@@ -56,8 +75,7 @@ function buildBarGradient(combo) {
 
 // 次のボーナス表示
 function buildNextBonus(combo) {
-  const next = calcBonnoGain(combo + 1);
-  return `次: +${next.toLocaleString()}`;
+  return `次: +${formatScore(calcBonnoGain(combo + 1))}`;
 }
 
 const BONNO_LIST = [
@@ -256,7 +274,7 @@ function handleSuccess(absAngle) {
   const bonno = BONNO_LIST[Math.floor(Math.random() * BONNO_LIST.length)];
   state.lastBonno = bonno;
   state.bonnoHistory.push(bonno);
-  els.bonnoName.textContent = `${bonno}を退散！ +${gain.toLocaleString()}`;
+  els.bonnoName.textContent = `${bonno}を退散！ +${formatScore(gain)}`;
 
   // 判定ラベル
   const { text, color } = getHitLabel(absAngle);
@@ -266,7 +284,7 @@ function handleSuccess(absAngle) {
   spawnParticles(absAngle);
 
   // スコア・コンボ表示
-  els.scoreDisplay.textContent = state.bonnoTotal.toLocaleString();
+  els.scoreDisplay.textContent = formatScore(state.bonnoTotal);
   els.comboDisplay.textContent = state.combo;
   els.comboDisplay.classList.remove('bump');
   void els.comboDisplay.offsetWidth;
@@ -374,7 +392,7 @@ function startGame() {
 
   els.scoreDisplay.textContent    = '0';
   els.comboDisplay.textContent    = '0';
-  els.highscoreDisplay.textContent = state.highScore.toLocaleString();
+  els.highscoreDisplay.textContent = formatScore(state.highScore);
   els.bonnoName.textContent       = '鐘が中央に来たら叩け！';
   els.judgmentText.textContent    = '';
   els.judgmentText.className      = 'judgment-text';
@@ -404,9 +422,8 @@ function startEnding(bonnoHistory, bonnoTotal, combo) {
   // Thank you を非表示にリセット
   els.crawlThanks.classList.remove('visible');
 
-  // クロールアニメーションをリセット
-  els.crawlText.style.animation = 'none';
-  void els.crawlText.offsetHeight; // reflow
+  // 前回のアニメーションをキャンセル（Web Animations API）
+  els.crawlText.getAnimations().forEach(a => a.cancel());
 
   showScreen('ending');
 
@@ -415,16 +432,26 @@ function startEnding(bonnoHistory, bonnoTotal, combo) {
     requestAnimationFrame(() => {
       const contentH = els.crawlText.scrollHeight;
       const viewH    = window.innerHeight;
-      const speed    = 52; // px/s
-      const duration = Math.round((contentH + viewH * 1.2) / speed);
+      const speed    = 52;  // px/s
+      // 移動距離: 1番目が画面下から入り、最後が画面上に出るまで
+      const distance = contentH + viewH;
+      const duration = Math.round(distance / speed) * 1000;  // ms
 
-      els.crawlText.style.animation =
-        `crawl-up ${duration}s linear forwards`;
+      // translateY(contentH): 1番目が画面最下部に来る位置から開始
+      // translateY(-viewH):   最後のアイテムが画面上端を過ぎた位置で終了
+      els.crawlText.animate(
+        [
+          { transform: `translateY(${contentH}px)` },
+          { transform: `translateY(${-viewH}px)` },
+        ],
+        { duration, fill: 'forwards', easing: 'linear' }
+      );
 
+      // クロール終了から3秒後にThank youを表示
       _crawlThanksTimer = setTimeout(() => {
         els.crawlThanks.classList.add('visible');
         _crawlThanksTimer = null;
-      }, (duration + 1) * 1000);
+      }, duration + 3000);
     });
   });
 }
@@ -480,13 +507,13 @@ function endGame() {
 
   els.resultTitle.textContent = combo === 0 ? '残念！' : `${combo}連続成功！`;
   els.resultRank.textContent  = rank;
-  els.resultRank.className    = `result-rank rank-${rank.toLowerCase()}`;
-  els.resultScore.textContent = score.toLocaleString();
+  els.resultRank.className    = `result-rank rank-${RANK_CLASS[rank] ?? 'd'}`;
+  els.resultScore.textContent = formatScore(score);
   els.resultMaxCombo.textContent = combo;
   els.resultLastBonno.textContent = state.lastBonno || '—';
 
   els.newRecord.classList.toggle('hidden', !isNew);
-  els.resultHighscore.textContent = isNew ? '' : `ハイスコア: ${hs.toLocaleString()}個`;
+  els.resultHighscore.textContent = isNew ? '' : `ハイスコア: ${formatScore(hs)}`;
 
   const shareText = buildShareText(score, combo, rank);
   els.btnShare.dataset.shareText = shareText;
@@ -496,21 +523,22 @@ function endGame() {
 }
 
 function buildShareText(score, combo, rank) {
-  let text = `【除夜の鐘チャレンジ】\n${combo}回連続で煩悩を退散！\n退散した煩悩: ${score.toLocaleString()}個 / ${rank}ランク\n#除夜の鐘 #煩悩退散\n${SHARE_URL}`;
-  return text;
+  return `【除夜の鐘チャレンジ】\n${combo}回連続で煩悩を退散！\n退散した煩悩: ${formatScore(score)}個 / ${rank}ランク\n#除夜の鐘 #煩悩退散\n${SHARE_URL}`;
 }
 
 // ===== 紙吹雪 =====
 function spawnConfetti(rank) {
   els.confettiContainer.innerHTML = '';
-  const count = { D: 0, C: 10, B: 25, A: 50, S: 80, SS: 130 }[rank] || 0;
+  const count = { D: 0, C: 10, B: 25, A: 50, S: 80, SS: 130, '阿修羅': 180, '仏陀': 250 }[rank] || 0;
   if (count === 0) return;
 
   const colorSets = {
-    C:  ['#c8a000','#ffe066','#a07000'],
-    B:  ['#4cff88','#c8a000','#ffe066','#fff'],
-    A:  ['#4cf4ff','#c8a000','#ffe066','#aaffff','#fff'],
-    S:  ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff'],
+    C:    ['#c8a000','#ffe066','#a07000'],
+    B:    ['#4cff88','#c8a000','#ffe066','#fff'],
+    A:    ['#4cf4ff','#c8a000','#ffe066','#aaffff','#fff'],
+    S:    ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff'],
+    '阿修羅': ['#ff6622','#ffaa44','#fff','#ff2200','#ffdd88'],
+    '仏陀':  ['#ffd700','#fff8a0','#ffe066','#fff','#88eeff','#ff88ff'],
     SS: ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff','#ff8800','#ff3333'],
   };
   const colors = colorSets[rank] || colorSets.C;
@@ -561,7 +589,8 @@ function initEvents() {
 
   // スキップ
   els.btnSkipEnding.addEventListener('click', () => {
-    els.crawlText.style.animationPlayState = 'paused';
+    els.crawlText.getAnimations().forEach(a => a.pause());
+    if (_crawlThanksTimer) { clearTimeout(_crawlThanksTimer); _crawlThanksTimer = null; }
     els.crawlThanks.classList.add('visible');
   });
 
@@ -599,7 +628,7 @@ function initEvents() {
 // ===== 初期化 =====
 function init() {
   const hs = loadHighScore();
-  if (hs > 0) els.startHighscore.textContent = `ハイスコア: ${hs.toLocaleString()}個`;
+  if (hs > 0) els.startHighscore.textContent = `ハイスコア: ${formatScore(hs)}個`;
   showScreen('start');
   initEvents();
 }
