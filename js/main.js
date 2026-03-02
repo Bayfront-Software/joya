@@ -113,6 +113,8 @@ let state = {
   bonnoHistory: [], // 退散した煩悩の履歴（順番）
   highScore: 0,
   bellHitWobble: 0, // 3Dベル Y軸ウォブル量
+  hitAngle:    0,   // ヒット後の物理スプリング追加角度（度）
+  hitAngVel:   0,   // ヒット後の角速度（度/秒）
 };
 
 // ===== 3D Bell =====
@@ -227,9 +229,19 @@ function animationLoop(timestamp) {
   const angle = Math.sin(state.bellPhase) * MAX_ANGLE;
   state.angle  = angle;
 
+  // ヒット後スプリングダンパー物理（タイミング判定には影響しない）
+  state.hitAngVel += (-6 * state.hitAngle - 3.5 * state.hitAngVel) * dt;
+  state.hitAngle  += state.hitAngVel * dt;
+  if (Math.abs(state.hitAngle) < 0.05 && Math.abs(state.hitAngVel) < 0.05) {
+    state.hitAngle = 0;
+    state.hitAngVel = 0;
+  }
+  // 視覚角度 = ゲーム角度 + ヒット物理オフセット
+  const visualAngle = angle + state.hitAngle;
+
   // 鐘の回転
   if (bell3D) {
-    bell3D.pivot.rotation.z = -angle * (Math.PI / 180);
+    bell3D.pivot.rotation.z = visualAngle * (Math.PI / 180);
     if (state.bellHitWobble > 0.005) {
       state.bellHitWobble *= 0.88;
       bell3D.mesh.rotation.y = Math.sin(state.bellHitWobble * 20) * state.bellHitWobble * 0.4;
@@ -239,7 +251,7 @@ function animationLoop(timestamp) {
     }
     bell3D.renderer.render(bell3D.scene, bell3D.camera);
   } else {
-    els.bellWrapper.style.transform = `rotate(${angle}deg)`;
+    els.bellWrapper.style.transform = `rotate(${visualAngle}deg)`;
   }
 
   // ポインター位置 (angle: -25〜+25 → 0〜100%)
@@ -261,7 +273,7 @@ function initBell3D() {
   const testC = document.createElement('canvas');
   if (!testC.getContext('webgl') && !testC.getContext('experimental-webgl')) return;
 
-  const W = getBell3DSize(), H = W * 1.45;
+  const W = getBell3DSize(), H = W * 1.1;
 
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -269,9 +281,9 @@ function initBell3D() {
   renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 1000);
-  camera.position.set(0, -42, 180);
-  camera.lookAt(0, -42, 0);
+  const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 1000);
+  camera.position.set(0, -38, 140);
+  camera.lookAt(0, -38, 0);
 
   // ライティング（暖色キーライト + 冷色フィル）
   scene.add(new THREE.AmbientLight(0xffe8a0, 0.55));
@@ -326,7 +338,7 @@ function initBell3D() {
   bell3D = { scene, camera, renderer, pivot, mesh, mat, canvas: cvs };
 
   window.addEventListener('resize', () => {
-    const nW = getBell3DSize(), nH = nW * 1.45;
+    const nW = getBell3DSize(), nH = nW * 1.1;
     renderer.setSize(nW, nH);
     camera.aspect = nW / nH;
     camera.updateProjectionMatrix();
@@ -402,10 +414,14 @@ function handleSuccess(absAngle) {
   setTimeout(() => bellEl.classList.remove('hit'), 200);
 
   if (bell3D) {
-    // 3Dベル: エミッシブフラッシュ + Yウォブル
+    // 3Dベル: エミッシブフラッシュ
     bell3D.mat.emissive.setHex(absAngle <= 3 ? 0x553300 : absAngle <= 8 ? 0x3a2800 : 0x281d00);
     setTimeout(() => bell3D && bell3D.mat.emissive.setHex(0x180d00), 180);
-    state.bellHitWobble = 0.25 + (1 - absAngle / MAX_ANGLE) * 0.25;
+    // ヒット方向に角速度インパルスを与える（現在の揺れ方向に合わせる）
+    const hitDir = Math.cos(state.bellPhase) >= 0 ? 1 : -1;
+    const impulse = 80 + (1 - absAngle / MAX_ANGLE) * 40; // PERFECT ほど強く
+    state.hitAngVel += hitDir * impulse;
+    state.bellHitWobble = 0.12;
   }
 
   playBellSound(true, absAngle);
@@ -506,6 +522,8 @@ function startGame() {
     bonnoHistory: [],
     highScore: loadHighScore(),
     bellHitWobble: 0,
+    hitAngle:    0,
+    hitAngVel:   0,
   };
 
   document.body.dataset.level = '0';
