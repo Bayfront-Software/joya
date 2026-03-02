@@ -24,20 +24,24 @@ function getLevel(combo) {
 
 // ランク（コンボ数で判定）
 function getRank(combo) {
-  if (combo >= 60) return '仏陀';
-  if (combo >= 30) return '阿修羅';
-  if (combo >= 18) return 'SS';
-  if (combo >= 13) return 'S';
-  if (combo >= 10) return 'A';
-  if (combo >= 7)  return 'B';
-  if (combo >= 4)  return 'C';
+  if (combo >= 100) return '仏陀';   // 究極の悟り
+  if (combo >= 70)  return '如来';   // 真如の境地
+  if (combo >= 50)  return '菩薩';   // 慈悲の光
+  if (combo >= 35)  return '天人';   // 天界の存在
+  if (combo >= 25)  return '阿修羅'; // 闘いの神
+  if (combo >= 18)  return 'SS';
+  if (combo >= 13)  return 'S';
+  if (combo >= 10)  return 'A';
+  if (combo >= 7)   return 'B';
+  if (combo >= 4)   return 'C';
   return 'D';
 }
 
 // ランク → CSSクラス名
 const RANK_CLASS = {
   'D': 'd', 'C': 'c', 'B': 'b', 'A': 'a',
-  'S': 's', 'SS': 'ss', '阿修羅': 'ashura', '仏陀': 'buddha',
+  'S': 's', 'SS': 'ss',
+  '阿修羅': 'ashura', '天人': 'tennin', '菩薩': 'bosatsu', '如来': 'nyorai', '仏陀': 'buddha',
 };
 
 // スコア整形（万・億・兆…単位）
@@ -529,17 +533,23 @@ function buildShareText(score, combo, rank) {
 // ===== 紙吹雪 =====
 function spawnConfetti(rank) {
   els.confettiContainer.innerHTML = '';
-  const count = { D: 0, C: 10, B: 25, A: 50, S: 80, SS: 130, '阿修羅': 180, '仏陀': 250 }[rank] || 0;
+  const count = {
+    D: 0, C: 10, B: 25, A: 50, S: 80, SS: 130,
+    '阿修羅': 150, '天人': 170, '菩薩': 190, '如来': 220, '仏陀': 260,
+  }[rank] || 0;
   if (count === 0) return;
 
   const colorSets = {
-    C:    ['#c8a000','#ffe066','#a07000'],
-    B:    ['#4cff88','#c8a000','#ffe066','#fff'],
-    A:    ['#4cf4ff','#c8a000','#ffe066','#aaffff','#fff'],
-    S:    ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff'],
-    '阿修羅': ['#ff6622','#ffaa44','#fff','#ff2200','#ffdd88'],
-    '仏陀':  ['#ffd700','#fff8a0','#ffe066','#fff','#88eeff','#ff88ff'],
-    SS: ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff','#ff8800','#ff3333'],
+    C:      ['#c8a000','#ffe066','#a07000'],
+    B:      ['#4cff88','#c8a000','#ffe066','#fff'],
+    A:      ['#4cf4ff','#c8a000','#ffe066','#aaffff','#fff'],
+    S:      ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff'],
+    SS:     ['#ff4cf4','#4cf4ff','#4cff88','#ffe066','#fff','#ff8800','#ff3333'],
+    '阿修羅': ['#ff6622','#ffaa44','#ff2200','#ffdd88','#fff'],
+    '天人':  ['#88eeff','#aaddff','#fff','#ddeeff','#eeffee'],
+    '菩薩':  ['#cc88ff','#aa66ff','#ff99cc','#fff','#88ccff','#ffaaee'],
+    '如来':  ['#ffffff','#fffacd','#ffd700','#fff8a0','#e0ffff','#ffe4b5'],
+    '仏陀':  ['#ffd700','#fff8a0','#ffe066','#fff','#88eeff','#ff88ff','#cc88ff'],
   };
   const colors = colorSets[rank] || colorSets.C;
 
