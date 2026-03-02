@@ -2,7 +2,7 @@
 
 // ===== 定数 =====
 const MAX_ANGLE   = 25;   // 鐘の最大角度（度）
-const SHARE_URL   = 'https://gzer0-dev.github.io/joya/';
+const SHARE_URL   = 'https://bayfront-software.github.io/joya/';
 
 // 連続数ごとの成功ウィンドウ（角度）: max(2, 20 - combo * 0.85)
 // combo0: 20°, combo5: 15.75°, combo10: 11.5°, combo15: 7.25°, combo21: 2.15°, combo22+: 2°
