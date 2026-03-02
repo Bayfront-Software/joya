@@ -238,6 +238,26 @@ body {
   transition: filter 0.3s;
 }
 
+/* 3D ベル canvas（Three.js が setSize でサイズ設定するため width/height はJS任せ） */
+.bell-canvas-3d {
+  display: block;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  filter: drop-shadow(0 4px 16px rgba(200,160,0,0.3));
+  transition: filter 0.3s;
+}
+
+.bell-canvas-3d.hit {
+  filter: drop-shadow(0 0 40px rgba(255,255,255,0.95)) drop-shadow(0 0 20px gold) !important;
+  transition: none !important;
+}
+
+body[data-level="1"] .bell-canvas-3d { filter: drop-shadow(0 0 16px rgba(200,160,0,0.8)); }
+body[data-level="2"] .bell-canvas-3d { filter: drop-shadow(0 0 28px rgba(255,180,0,1)) drop-shadow(0 0 8px rgba(255,255,255,0.3)); }
+body[data-level="3"] .bell-canvas-3d { animation: bell-pulse 0.8s ease-in-out infinite alternate; }
+body[data-level="4"] .bell-canvas-3d { animation: bell-rainbow 1.2s linear infinite; }
+
 /* ===== 判定テキスト ===== */
 .judgment-text {
   position: absolute;

@@ -112,7 +112,11 @@ let state = {
   lastBonno: '',
   bonnoHistory: [], // 退散した煩悩の履歴（順番）
   highScore: 0,
+  bellHitWobble: 0, // 3Dベル Y軸ウォブル量
 };
+
+// ===== 3D Bell =====
+let bell3D = null;
 
 // ===== DOM =====
 const screens = {
@@ -224,13 +228,109 @@ function animationLoop(timestamp) {
   state.angle  = angle;
 
   // 鐘の回転
-  els.bellWrapper.style.transform = `rotate(${angle}deg)`;
+  if (bell3D) {
+    bell3D.pivot.rotation.z = -angle * (Math.PI / 180);
+    if (state.bellHitWobble > 0.005) {
+      state.bellHitWobble *= 0.88;
+      bell3D.mesh.rotation.y = Math.sin(state.bellHitWobble * 20) * state.bellHitWobble * 0.4;
+    } else {
+      bell3D.mesh.rotation.y = 0;
+      state.bellHitWobble = 0;
+    }
+    bell3D.renderer.render(bell3D.scene, bell3D.camera);
+  } else {
+    els.bellWrapper.style.transform = `rotate(${angle}deg)`;
+  }
 
   // ポインター位置 (angle: -25〜+25 → 0〜100%)
   const pct = (angle / MAX_ANGLE) * 50 + 50;
   els.timingPointer.style.left = `${pct}%`;
 
   state.rafId = requestAnimationFrame(animationLoop);
+}
+
+// ===== 3D Bell 初期化 =====
+function getBell3DSize() {
+  return window.innerHeight < 620
+    ? Math.min(140, window.innerWidth * 0.32)
+    : Math.min(200, window.innerWidth * 0.45);
+}
+
+function initBell3D() {
+  if (!window.THREE) return;
+  const testC = document.createElement('canvas');
+  if (!testC.getContext('webgl') && !testC.getContext('experimental-webgl')) return;
+
+  const W = getBell3DSize(), H = W * 1.45;
+
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 1000);
+  camera.position.set(0, -42, 180);
+  camera.lookAt(0, -42, 0);
+
+  // ライティング（暖色キーライト + 冷色フィル）
+  scene.add(new THREE.AmbientLight(0xffe8a0, 0.55));
+  const key = new THREE.DirectionalLight(0xffc050, 1.3);
+  key.position.set(-1.5, 2, 3);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x405080, 0.2);
+  fill.position.set(2, -1, -2);
+  scene.add(fill);
+
+  // 梵鐘プロファイル: [半径, y座標] — 頂点y=0 / 底面y=-80
+  const pts = [
+    [0, 0], [4, -4], [6, -10], [8, -18], [12, -32],
+    [16, -50], [18, -65], [22, -74], [23, -80],
+  ].map(([r, y]) => new THREE.Vector2(r, y));
+
+  const geom = new THREE.LatheGeometry(pts, 40);
+  const mat = new THREE.MeshPhongMaterial({
+    color: 0x8b6908,
+    specular: 0xffcc44,
+    shininess: 90,
+    emissive: 0x180d00,
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+
+  // 横帯（装飾リング）
+  const band = new THREE.Mesh(
+    new THREE.TorusGeometry(15, 0.65, 6, 32),
+    new THREE.MeshPhongMaterial({ color: 0x5a4005, specular: 0xaa8822, shininess: 40 })
+  );
+  band.position.y = -40;
+  band.rotation.x = Math.PI / 2;
+
+  // 頂点ノブ（吊り環部分）
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 6), mat);
+
+  const pivot = new THREE.Object3D();
+  pivot.add(mesh);
+  pivot.add(band);
+  pivot.add(knob);
+  scene.add(pivot);
+
+  const cvs = renderer.domElement;
+  cvs.className = 'bell-canvas-3d';
+  els.bellWrapper.insertBefore(cvs, els.bellImg);
+  els.bellImg.style.display = 'none';
+
+  // タップ・クリックでもヒット判定
+  cvs.addEventListener('click', (e) => { e.preventDefault(); onHit(); });
+  cvs.addEventListener('touchstart', (e) => { e.preventDefault(); onHit(); }, { passive: false });
+
+  bell3D = { scene, camera, renderer, pivot, mesh, mat, canvas: cvs };
+
+  window.addEventListener('resize', () => {
+    const nW = getBell3DSize(), nH = nW * 1.45;
+    renderer.setSize(nW, nH);
+    camera.aspect = nW / nH;
+    camera.updateProjectionMatrix();
+  });
 }
 
 // ===== 視覚レベル更新 =====
@@ -295,12 +395,21 @@ function handleSuccess(absAngle) {
   els.comboDisplay.classList.add('bump');
 
   // 鐘の光エフェクト
-  els.bellImg.classList.remove('hit');
-  void els.bellImg.offsetWidth;
-  els.bellImg.classList.add('hit');
-  setTimeout(() => els.bellImg.classList.remove('hit'), 200);
+  const bellEl = bell3D ? bell3D.canvas : els.bellImg;
+  bellEl.classList.remove('hit');
+  void bellEl.offsetWidth;
+  bellEl.classList.add('hit');
+  setTimeout(() => bellEl.classList.remove('hit'), 200);
+
+  if (bell3D) {
+    // 3Dベル: エミッシブフラッシュ + Yウォブル
+    bell3D.mat.emissive.setHex(absAngle <= 3 ? 0x553300 : absAngle <= 8 ? 0x3a2800 : 0x281d00);
+    setTimeout(() => bell3D && bell3D.mat.emissive.setHex(0x180d00), 180);
+    state.bellHitWobble = 0.25 + (1 - absAngle / MAX_ANGLE) * 0.25;
+  }
 
   playBellSound(true, absAngle);
+  if (navigator.vibrate) navigator.vibrate(20);
 
   // 108回連続達成 → 特別エンディング
   if (state.combo >= 108) {
@@ -321,6 +430,12 @@ function handleMiss() {
 
   showJudgment('MISS...', '#ff3333', 'show-miss');
   playBellSound(false, MAX_ANGLE);
+
+  if (bell3D) {
+    bell3D.mat.emissive.setHex(0x330000);
+    setTimeout(() => bell3D && bell3D.mat.emissive.setHex(0x180d00), 700);
+  }
+  if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
 
   // 赤フラッシュ + シェイク
   screens.game.classList.add('miss-flash');
@@ -390,6 +505,7 @@ function startGame() {
     lastBonno: '',
     bonnoHistory: [],
     highScore: loadHighScore(),
+    bellHitWobble: 0,
   };
 
   document.body.dataset.level = '0';
@@ -400,7 +516,7 @@ function startGame() {
   els.bonnoName.textContent       = '鐘が中央に来たら叩け！';
   els.judgmentText.textContent    = '';
   els.judgmentText.className      = 'judgment-text';
-  els.bellWrapper.style.transform = 'rotate(0deg)';
+  if (!bell3D) els.bellWrapper.style.transform = 'rotate(0deg)';
 
   updateTimingBar(0);
   showScreen('game');
@@ -590,6 +706,19 @@ function initEvents() {
   els.btnReplay.addEventListener('click', startGame);
   els.btnShare.addEventListener('click', share);
 
+  // タイトルを5回すばやくタップ → 開発者デモボタンを表示
+  let _demoTapCount = 0, _demoTapTimer = null;
+  document.querySelector('.game-title').addEventListener('click', () => {
+    _demoTapCount++;
+    clearTimeout(_demoTapTimer);
+    if (_demoTapCount >= 5) {
+      els.btnDemoEnding.classList.remove('hidden');
+      _demoTapCount = 0;
+    } else {
+      _demoTapTimer = setTimeout(() => { _demoTapCount = 0; }, 2000);
+    }
+  });
+
   // デモエンディング
   els.btnDemoEnding.addEventListener('click', () => {
     const demoHistory = getDemoBonnoHistory();
@@ -642,6 +771,7 @@ function initEvents() {
 function init() {
   const hs = loadHighScore();
   if (hs > 0) els.startHighscore.textContent = `ハイスコア: ${formatScore(hs)}個`;
+  initBell3D();
   showScreen('start');
   initEvents();
 }
