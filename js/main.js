@@ -264,8 +264,8 @@ function animationLoop(timestamp) {
 // ===== 3D Bell 初期化 =====
 function getBell3DSize() {
   return window.innerHeight < 620
-    ? Math.min(140, window.innerWidth * 0.32)
-    : Math.min(200, window.innerWidth * 0.45);
+    ? Math.min(170, window.innerWidth * 0.40)
+    : Math.min(250, window.innerWidth * 0.56);
 }
 
 function initBell3D() {
@@ -282,7 +282,7 @@ function initBell3D() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 1000);
-  camera.position.set(0, -38, 140);
+  camera.position.set(0, -38, 115);
   camera.lookAt(0, -38, 0);
 
   // ライティング（暖色キーライト + 冷色フィル）
