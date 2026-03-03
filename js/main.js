@@ -229,29 +229,29 @@ function animationLoop(timestamp) {
   const angle = Math.sin(state.bellPhase) * MAX_ANGLE;
   state.angle  = angle;
 
-  // ヒット後スプリングダンパー物理（タイミング判定には影響しない）
-  state.hitAngVel += (-6 * state.hitAngle - 3.5 * state.hitAngVel) * dt;
+  // 奥行き物理: ヒット後に鐘が奥へ飛び、手前に戻ってくるサンドバッグ挙動
+  // hitAngle = X軸回転角度（正 → 底が奥へ向かう）
+  state.hitAngVel += (-5 * state.hitAngle - 3.2 * state.hitAngVel) * dt;
   state.hitAngle  += state.hitAngVel * dt;
   if (Math.abs(state.hitAngle) < 0.05 && Math.abs(state.hitAngVel) < 0.05) {
     state.hitAngle = 0;
     state.hitAngVel = 0;
   }
-  // 視覚角度 = ゲーム角度 + ヒット物理オフセット
-  const visualAngle = angle + state.hitAngle;
 
-  // 鐘の回転
+  // 鐘の回転（Z=タイミング、X=奥行き物理）
   if (bell3D) {
-    bell3D.pivot.rotation.z = visualAngle * (Math.PI / 180);
+    bell3D.pivot.rotation.z = angle * (Math.PI / 180);
+    bell3D.pivot.rotation.x = state.hitAngle * (Math.PI / 180);
     if (state.bellHitWobble > 0.005) {
-      state.bellHitWobble *= 0.88;
-      bell3D.mesh.rotation.y = Math.sin(state.bellHitWobble * 20) * state.bellHitWobble * 0.4;
+      state.bellHitWobble *= 0.85;
+      bell3D.mesh.rotation.y = Math.sin(state.bellHitWobble * 18) * state.bellHitWobble * 0.25;
     } else {
       bell3D.mesh.rotation.y = 0;
       state.bellHitWobble = 0;
     }
     bell3D.renderer.render(bell3D.scene, bell3D.camera);
   } else {
-    els.bellWrapper.style.transform = `rotate(${visualAngle}deg)`;
+    els.bellWrapper.style.transform = `rotate(${angle}deg)`;
   }
 
   // ポインター位置 (angle: -25〜+25 → 0〜100%)
@@ -417,11 +417,10 @@ function handleSuccess(absAngle) {
     // 3Dベル: エミッシブフラッシュ
     bell3D.mat.emissive.setHex(absAngle <= 3 ? 0x553300 : absAngle <= 8 ? 0x3a2800 : 0x281d00);
     setTimeout(() => bell3D && bell3D.mat.emissive.setHex(0x180d00), 180);
-    // ヒット方向に角速度インパルスを与える（現在の揺れ方向に合わせる）
-    const hitDir = Math.cos(state.bellPhase) >= 0 ? 1 : -1;
-    const impulse = 80 + (1 - absAngle / MAX_ANGLE) * 40; // PERFECT ほど強く
-    state.hitAngVel += hitDir * impulse;
-    state.bellHitWobble = 0.12;
+    // 奥行き方向（X軸）にインパルス: 鐘底が奥へ飛び、手前に戻るサンドバッグ挙動
+    const impulse = 75 + (1 - absAngle / MAX_ANGLE) * 45; // PERFECT ほど強く
+    state.hitAngVel += impulse; // 正 = 底が奥（カメラと逆方向）へ
+    state.bellHitWobble = 0.08;
   }
 
   playBellSound(true, absAngle);
