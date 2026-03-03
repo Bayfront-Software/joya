@@ -167,7 +167,19 @@ const els = {
 let audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS では suspended 状態になるため resume が必要
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+// iOS/Safari: 最初のユーザー操作でサイレント音を再生してロックを解除
+function unlockAudioOnFirstGesture() {
+  const ctx = getAudioCtx();
+  const buf = ctx.createBuffer(1, 1, 22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
 }
 
 function playBellSound(isSuccess, absAngle) {
@@ -264,8 +276,8 @@ function animationLoop(timestamp) {
 // ===== 3D Bell 初期化 =====
 function getBell3DSize() {
   return window.innerHeight < 620
-    ? Math.min(170, window.innerWidth * 0.40)
-    : Math.min(250, window.innerWidth * 0.56);
+    ? Math.min(210, window.innerWidth * 0.52)
+    : Math.min(300, window.innerWidth * 0.72);
 }
 
 function initBell3D() {
@@ -282,7 +294,7 @@ function initBell3D() {
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 1000);
-  camera.position.set(0, -38, 115);
+  camera.position.set(0, -38, 100);
   camera.lookAt(0, -38, 0);
 
   // ライティング（暖色キーライト + 冷色フィル）
@@ -396,8 +408,15 @@ function handleSuccess(absAngle) {
   const { text, color } = getHitLabel(absAngle);
   showJudgment(text, color, 'show-hit');
 
-  // パーティクル
+  // パーティクル＋煩悩退散エフェクト
   spawnParticles(absAngle);
+  spawnBonnoExplosion(bonno, absAngle);
+
+  // PERFECT 時は画面フラッシュで爽快感を強調
+  if (absAngle <= 3) {
+    screens.game.classList.add('perfect-flash');
+    setTimeout(() => screens.game.classList.remove('perfect-flash'), 300);
+  }
 
   // スコア・コンボ表示
   els.scoreDisplay.textContent = formatScore(state.bonnoTotal);
@@ -717,8 +736,44 @@ async function share() {
   window.open(url, '_blank', 'noopener');
 }
 
+// ===== 煩悩退散エフェクト =====
+function spawnBonnoExplosion(bonno, absAngle) {
+  const color = absAngle <= 3 ? '#ff4cf4' : absAngle <= 8 ? '#4cf4ff' : '#4cff88';
+
+  // 煩悩名が上に舞い上がって消える
+  const main = document.createElement('div');
+  main.className = 'bonno-flyer';
+  main.textContent = bonno;
+  const sz = absAngle <= 3 ? 1.5 : absAngle <= 8 ? 1.25 : 1.05;
+  main.style.cssText = `font-size:${sz}rem;color:${color};text-shadow:0 0 14px ${color};`;
+  els.particleContainer.appendChild(main);
+  setTimeout(() => main.remove(), 1200);
+
+  // 漢字の破片が四方に飛び散る
+  const chars = ['煩','悩','怒','貪','嫉','妬','執','怨','憎','愚','恨','慢'];
+  const count = absAngle <= 3 ? 10 : absAngle <= 8 ? 7 : 5;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'bonno-shard';
+    s.textContent = chars[Math.floor(Math.random() * chars.length)];
+    const flyAngle = (i / count) * 360 + Math.random() * 30;
+    const dist = 55 + Math.random() * 75;
+    s.style.cssText = `
+      --angle:${flyAngle}deg;--dist:${dist}px;
+      font-size:${0.8 + Math.random() * 0.5}rem;
+      color:${color};text-shadow:0 0 8px ${color};
+    `;
+    els.particleContainer.appendChild(s);
+    setTimeout(() => s.remove(), 950);
+  }
+}
+
 // ===== イベント登録 =====
 function initEvents() {
+  // iOS/Safari 音声ロック解除（最初のタップで1度だけ）
+  document.addEventListener('touchstart', unlockAudioOnFirstGesture, { once: true });
+  document.addEventListener('click',      unlockAudioOnFirstGesture, { once: true });
+
   els.btnStart.addEventListener('click', startGame);
   els.btnReplay.addEventListener('click', startGame);
   els.btnShare.addEventListener('click', share);

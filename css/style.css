@@ -296,6 +296,47 @@ body[data-level="4"] .bell-canvas-3d { animation: bell-rainbow 1.2s linear infin
   100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
 }
 
+/* ===== 煩悩退散エフェクト ===== */
+.bonno-flyer {
+  position: absolute;
+  font-weight: 900;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  animation: bonno-fly-up 1.1s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+  z-index: 5;
+}
+
+@keyframes bonno-fly-up {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1.3); }
+  30%  { opacity: 1; transform: translateX(-50%) translateY(-55px)  scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-140px) scale(0.7); }
+}
+
+.bonno-shard {
+  position: absolute;
+  font-weight: 900;
+  pointer-events: none;
+  animation: bonno-shard-burst 0.85s ease-out forwards;
+  z-index: 5;
+}
+
+@keyframes bonno-shard-burst {
+  0%   { opacity: 1; transform: rotate(var(--angle)) translateX(0)           scale(1.2); }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateX(var(--dist)) scale(0.4); }
+}
+
+/* PERFECT 時の白フラッシュ */
+#screen-game.perfect-flash::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+  z-index: 9;
+  animation: flash-out 0.3s ease-out forwards;
+}
+
 /* ===== パーティクル ===== */
 .particle-container {
   position: absolute;
@@ -377,6 +418,7 @@ body[data-level="4"] .bell-canvas-3d { animation: bell-rainbow 1.2s linear infin
 
 /* ===== BANG ボタン ===== */
 .btn-hit {
+  margin-top: 14px;
   background: linear-gradient(135deg, #8b0000, #cc3300);
   color: #fff;
   font-size: 1.5rem;
